@@ -98,6 +98,15 @@ def test_subscription_ignores_variable_and_one_off_charges():
     assert analytics.find_subscriptions(tx).empty
 
 
+def test_rent_is_a_bill_not_a_subscription():
+    tx = make_tx([
+        ("2026-08-01", "chk", "Maple Court Apartments", "Housing", 725.0),
+        ("2026-09-01", "chk", "Maple Court Apartments", "Housing", 725.0),
+        ("2026-10-01", "chk", "Maple Court Apartments", "Housing", 725.0),
+    ])
+    assert analytics.find_subscriptions(tx).empty
+
+
 def dining_history():
     return [
         ("2026-09-01", "cc", "Chipotle", "Dining", 12.0),

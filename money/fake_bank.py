@@ -38,7 +38,7 @@ EVERYDAY = {
     "Coffee": (0.45, ["Starbucks", "Bean There Cafe"], 4.25, 7.80),
     "Dining": (0.30, ["Chipotle", "Waffle House", "Panda Express", "Taco Bell"], 8.00, 28.00),
     "Transport": (0.20, ["Uber", "Shell"], 9.00, 42.00),
-    "Shopping": (0.10, ["Amazon", "Target"], 15.00, 80.00),
+    "Shopping": (0.15, ["Amazon", "Target"], 15.00, 80.00),
     "Entertainment": (0.05, ["AMC Theatres", "Steam"], 9.99, 28.00),
     "Personal": (0.03, ["Great Clips", "CVS"], 12.00, 26.00),
 }
@@ -62,7 +62,7 @@ def get_transactions(today: date | None = None, days: int = 90, seed: int = 42) 
         day = today - timedelta(days=offset)
 
         if (day - PAYDAY_ANCHOR).days % 14 == 0:
-            add(day, "chk", "Campus Job Payroll", "Income", -612.50)
+            add(day, "chk", "Campus Job Payroll", "Income", -980.00)
         if day.day == 1:
             add(day, "chk", "Maple Court Apartments", "Housing", 725.00)
         if day.day == 2:

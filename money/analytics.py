@@ -53,10 +53,14 @@ def net_worth(accounts: pd.DataFrame) -> float:
 
 
 def find_subscriptions(tx: pd.DataFrame) -> pd.DataFrame:
-    """Same merchant, same amount, roughly once a month, at least 2 different months."""
+    """Same merchant, same amount, roughly once a month, at least 2 different months.
+
+    Rent and utilities (Housing) repeat too, but they are bills, not subscriptions.
+    """
     columns = ["merchant", "amount", "months_seen", "last_charged", "next_expected"]
     rows = []
     spent = spending(tx)
+    spent = spent[spent["category"] != "Housing"]
     for (merchant, amount), group in spent.groupby(["merchant", spent["amount"].round(2)]):
         dates = group["date"].sort_values()
         months_seen = dates.dt.to_period("M").nunique()
