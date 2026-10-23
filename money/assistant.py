@@ -46,7 +46,11 @@ CATEGORY_WORDS = {
 SENSITIVE = re.compile(r"(?:\d[ -]?){13,19}|\b\d{3}-\d{2}-\d{4}\b|\bpassword\b|\bpin\b", re.I)
 MOVE_MONEY = re.compile(
     r"^(?:please\s+|can you\s+|could you\s+|would you\s+|go ahead and\s+)*"
-    r"(?:move|send|transfer|wire|pay|withdraw|deposit|venmo|zelle)\b", re.I)
+    r"(?:move|send|transfer|wire|pay|withdraw|deposit|venmo|zelle)\b"
+    r"|\b(?:move|send|transfer|wire|pay|withdraw|deposit)\s+\$?\d", re.I)  # or "... send $50 ..." mid-sentence
+INJECTION = re.compile(
+    r"\b(?:ignore|forget|disregard|bypass|override)\b[^.?!]{0,40}\b(?:rules|instructions|guardrails|prompt)\b"
+    r"|\byou are now\b", re.I)
 ADVICE = re.compile(
     r"guarantee|should i (?:buy|sell|invest)|invest in|which stock|what stock|best stock"
     r"|stock to buy|crypto|bitcoin|get rich", re.I)
@@ -82,6 +86,9 @@ def answer(question: str, accounts: pd.DataFrame, tx: pd.DataFrame, today: date 
     if SENSITIVE.search(q):
         return Answer("Please don't share card numbers, SSNs, passwords or PINs, here or with any app. "
                       "I didn't save it. Delete it from anywhere else you pasted it.", "refuse_sensitive", True)
+    if INJECTION.search(q):
+        return Answer("My rules don't change based on how a question is worded. I can read and explain your "
+                      "numbers, nothing more.", "refuse_injection", True)
     if MOVE_MONEY.search(q):
         return Answer("I can't move, send or transfer money or pay bills. I only read your numbers. "
                       "Do that in your bank's own app.", "refuse_money_movement", True)
