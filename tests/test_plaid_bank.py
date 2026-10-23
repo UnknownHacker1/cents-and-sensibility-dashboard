@@ -41,6 +41,36 @@ def test_normalize_transactions_maps_categories_and_keeps_sign():
     assert str(tx["date"].dtype).startswith("datetime64")
 
 
+class FakePlaidApi:
+    def __init__(self):
+        self.requests = []
+
+    def link_token_create(self, request):
+        self.requests.append(request)
+        return {"link_token": "link-sandbox-123"}
+
+    def item_public_token_exchange(self, request):
+        self.requests.append(request)
+        return {"access_token": "access-sandbox-abc"}
+
+
+def test_create_link_token_uses_session_user():
+    api = FakePlaidApi()
+    bank = plaid_bank.PlaidSandboxBank("id", "secret", api=api)
+    assert bank.create_link_token("session-42") == "link-sandbox-123"
+    request = api.requests[0]
+    assert request.user.client_user_id == "session-42"
+    assert request.client_name == "Sensible"
+
+
+def test_exchange_public_token_keeps_access_token_on_the_bank():
+    api = FakePlaidApi()
+    bank = plaid_bank.PlaidSandboxBank("id", "secret", api=api)
+    assert bank.exchange_public_token("public-sandbox-xyz") == "access-sandbox-abc"
+    assert bank.access_token == "access-sandbox-abc"
+    assert api.requests[0].public_token == "public-sandbox-xyz"
+
+
 def test_normalize_transactions_empty():
     tx = plaid_bank.normalize_transactions([])
     assert tx.empty

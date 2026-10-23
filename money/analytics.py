@@ -47,6 +47,32 @@ def month_summary(tx: pd.DataFrame, month: pd.Period) -> dict:
     }
 
 
+def pace(tx: pd.DataFrame, month: pd.Period, today: date | None = None) -> list[dict]:
+    """Running total of spending, day by day, for this month and the one before.
+
+    Days that haven't happened yet are None for this month, and days the previous
+    month didn't have (Sept 31) are None for last month, so a chart can stop the line.
+    """
+    today = today or date.today()
+    spent = spending(tx)
+
+    def daily(m: pd.Period) -> pd.Series:
+        rows = _in_month(spent, m)
+        return rows.groupby(rows["date"].dt.day)["amount"].sum()
+
+    this_days, last_days = daily(month), daily(month - 1)
+    rows, this_total, last_total = [], 0.0, 0.0
+    for day in range(1, month.days_in_month + 1):
+        this_total += float(this_days.get(day, 0.0))
+        last_total += float(last_days.get(day, 0.0))
+        rows.append({
+            "day": day,
+            "this_month": None if date(month.year, month.month, day) > today else round(this_total, 2),
+            "last_month": round(last_total, 2) if day <= (month - 1).days_in_month else None,
+        })
+    return rows
+
+
 def net_worth(accounts: pd.DataFrame) -> float:
     owed = accounts["type"] == "credit"
     return round(float(accounts.loc[~owed, "balance"].sum() - accounts.loc[owed, "balance"].sum()), 2)

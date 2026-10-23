@@ -64,28 +64,52 @@ def normalize_transactions(raw: list[dict]) -> pd.DataFrame:
 
 
 class PlaidSandboxBank:
-    def __init__(self, client_id: str, secret: str):
+    def __init__(self, client_id: str, secret: str, access_token: str | None = None, api=None):
         self.client_id = client_id
         self.secret = secret
-        self.client = None
-        self.access_token = None
+        self.access_token = access_token
+        self._api = api
+
+    @property
+    def client(self):
+        if self._api is None:
+            # Imported here so the app still runs on the fake bank if plaid isn't installed
+            import plaid
+            from plaid.api import plaid_api
+
+            config = plaid.Configuration(host=plaid.Environment.Sandbox,
+                                         api_key={"clientId": self.client_id, "secret": self.secret})
+            self._api = plaid_api.PlaidApi(plaid.ApiClient(config))
+        return self._api
 
     def connect(self) -> None:
-        # Imported here so the app still runs on the fake bank if plaid isn't installed
-        import plaid
-        from plaid.api import plaid_api
-        from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+        """Skip the Link screen: make a sandbox token for Plaid's test bank and exchange it."""
         from plaid.model.products import Products
         from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
 
-        config = plaid.Configuration(host=plaid.Environment.Sandbox,
-                                     api_key={"clientId": self.client_id, "secret": self.secret})
-        self.client = plaid_api.PlaidApi(plaid.ApiClient(config))
         public = self.client.sandbox_public_token_create(SandboxPublicTokenCreateRequest(
             institution_id=SANDBOX_INSTITUTION, initial_products=[Products("transactions")]))
-        exchange = self.client.item_public_token_exchange(
-            ItemPublicTokenExchangeRequest(public_token=public["public_token"]))
-        self.access_token = exchange["access_token"]
+        self.exchange_public_token(public["public_token"])
+
+    def create_link_token(self, user_id: str) -> str:
+        """Token for the Plaid Link popup in the browser. user_id is our session, never a real name."""
+        from plaid.model.country_code import CountryCode
+        from plaid.model.link_token_create_request import LinkTokenCreateRequest
+        from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
+        from plaid.model.products import Products
+
+        response = self.client.link_token_create(LinkTokenCreateRequest(
+            user=LinkTokenCreateRequestUser(client_user_id=user_id), client_name="Sensible",
+            products=[Products("transactions")], country_codes=[CountryCode("US")], language="en"))
+        return response["link_token"]
+
+    def exchange_public_token(self, public_token: str) -> str:
+        """Swap Link's short-lived public token for an access token. It stays on the server."""
+        from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+
+        response = self.client.item_public_token_exchange(ItemPublicTokenExchangeRequest(public_token=public_token))
+        self.access_token = response["access_token"]
+        return self.access_token
 
     def get_accounts(self) -> pd.DataFrame:
         from plaid.model.accounts_get_request import AccountsGetRequest
