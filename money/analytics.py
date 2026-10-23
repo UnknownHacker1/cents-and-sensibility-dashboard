@@ -36,7 +36,7 @@ def month_summary(tx: pd.DataFrame, month: pd.Period) -> dict:
     by_category = spending_by_category(tx, month)
     spent = round(float(by_category.sum()), 2)
     this_month = _in_month(tx, month)
-    income = round(float(-this_month.loc[this_month["category"] == "Income", "amount"].sum()), 2)
+    income = round(float(-this_month.loc[this_month["category"] == "Income", "amount"].sum()), 2) + 0.0  # no -0.0
     last_spent = float(spending_by_category(tx, month - 1).sum())
     return {
         "spent": spent,

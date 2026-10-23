@@ -151,6 +151,8 @@ def test_every_function_handles_empty_transactions():
     summary = analytics.month_summary(EMPTY, OCT)
     assert summary["spent"] == 0.0 and summary["top_category"] is None
     assert summary["change_pct"] is None
+    float_empty = make_tx([("2026-10-01", "chk", "X", "Dining", 1.0)]).iloc[0:0]  # float dtype, like the app
+    assert f"{analytics.month_summary(float_empty, OCT)['income']:.2f}" == "0.00"  # not "-0.00"
     assert analytics.find_subscriptions(EMPTY).empty
     assert analytics.find_unusual_charges(EMPTY, today=date(2026, 10, 23)).empty
 
