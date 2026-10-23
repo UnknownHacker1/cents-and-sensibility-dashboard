@@ -19,7 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from api.security import SECURITY_HEADERS, RateLimiter, run_checks
 from api.settings import Settings
-from money import ai, analytics, fake_bank, plaid_bank, story
+from money import ai, analytics, assistant, fake_bank, plaid_bank, story
 
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 PLAID_CACHE_SECONDS = 300
@@ -89,6 +89,9 @@ def create_app(settings: Settings | None = None, today: date | None = None) -> F
 
     def bank(sess: dict) -> tuple[pd.DataFrame, pd.DataFrame, str]:
         entry = vault.get(sess["sid"], {})
+        if entry.get("plaid_error"):  # a dead connection stays on the fake bank until reconnect or disconnect
+            accounts, tx = _fake_bank(today_())
+            return accounts, tx, f"Fake bank (Plaid failed: {entry['plaid_error']})"
         token = entry.get("plaid_token")
         if token and settings.plaid_available:
             cached = entry.get("plaid_data")
@@ -101,6 +104,7 @@ def create_app(settings: Settings | None = None, today: date | None = None) -> F
                 entry["plaid_data"] = (accounts, tx, time.monotonic())
                 return accounts, tx, "Plaid Sandbox"
             except Exception as error:
+                vault[sess["sid"]] = {"plaid_error": _plaid_error_code(error)}
                 accounts, tx = _fake_bank(today_())
                 return accounts, tx, f"Fake bank (Plaid failed: {_plaid_error_code(error)})"
         accounts, tx = _fake_bank(today_())
@@ -120,6 +124,20 @@ def create_app(settings: Settings | None = None, today: date | None = None) -> F
         return {"authenticated": bool(sess.get("sid")), "mode": sess.get("mode"),
                 "password_required": bool(settings.app_password), "plaid_available": settings.plaid_available,
                 "ai_engine": ai.engine_name()}
+
+    @app.get("/api/preview")
+    def preview():
+        """Public, fake-data-only numbers for the landing page. Never touches a connected bank."""
+        accounts, tx = _fake_bank(today_())
+        month = pd.Period(today_(), "M")
+        examples = assistant.EXAMPLE_QUESTIONS[:3]
+        return {
+            "story": story.month_story(tx, month, today=today_()),
+            "pace": analytics.pace(tx, month, today=today_()),
+            "alerts": _records(analytics.find_unusual_charges(tx, today=today_())),
+            "examples": [{"question": q, "answer": assistant.answer(q, accounts, tx, today=today_()).text}
+                         for q in examples],
+        }
 
     @app.post("/api/login")
     def login(body: LoginBody, request: Request):

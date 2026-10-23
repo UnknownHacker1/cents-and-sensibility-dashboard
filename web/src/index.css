@@ -1,0 +1,115 @@
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Sensible design tokens. Brand: Ink #14213D, Mint #2EC4B6, Coral #FF6B6B. */
+:root {
+  --bg: #f6f8fb;
+  --raised: #ffffff;
+  --sunken: #eef2f7;
+  --line: #dce3ec;
+  --ink: #14213d;
+  --muted: #5a6a85;
+  --mint: #2ec4b6;
+  --mint-ink: #08302c;
+  --mint-soft: #dff6f3;
+  --good: #00796e;
+  --coral: #ff6b6b;
+  --coral-text: #c9363a;
+  --coral-soft: #fff0f0;
+  --series-this: #009a8a;
+  --series-last: #5a5fdb;
+  --shadow: 0 1px 2px rgb(20 33 61 / 0.06), 0 8px 24px -12px rgb(20 33 61 / 0.12);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1a33;
+  --raised: #16233f;
+  --sunken: #0b1429;
+  --line: #26365a;
+  --ink: #e8eef6;
+  --muted: #9aa8c2;
+  --mint: #3dd6c6;
+  --mint-ink: #05221f;
+  --mint-soft: #123a44;
+  --good: #3dd6c6;
+  --coral: #ff8080;
+  --coral-text: #ff9a9a;
+  --coral-soft: #3a1f2e;
+  --series-this: #1fa394;
+  --series-last: #8478e8;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-mint: var(--mint);
+  --color-mint-ink: var(--mint-ink);
+  --color-mint-soft: var(--mint-soft);
+  --color-good: var(--good);
+  --color-coral: var(--coral);
+  --color-coral-text: var(--coral-text);
+  --color-coral-soft: var(--coral-soft);
+  --color-series-this: var(--series-this);
+  --color-series-last: var(--series-last);
+  --font-display: "Bricolage Grotesque Variable", "Segoe UI", sans-serif;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --shadow-panel: var(--shadow);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Recharts: keep axes and grid recessive */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+  font-size: 12px;
+}
+.recharts-surface:focus {
+  outline: none;
+}

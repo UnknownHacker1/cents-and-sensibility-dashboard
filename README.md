@@ -2,51 +2,67 @@
 
 *Your money, finally making sense.*
 
-An AI-powered personal finance dashboard built for the FinTech Club Innovation Series. It shows all your accounts, where your money went, unusual-charge alerts, subscriptions, and a savings goal, and you can ask it questions about your money. **All data is fake.** Educational only, not financial advice.
+A personal finance app built for the FinTech Club Innovation Series. It puts every account in one place, explains your month in one sentence, flags charges that look off, and answers questions about your money. It covers all five events: fake bank, Plaid Sandbox, a real AI assistant, a live Security Center, and a demo-ready site.
+
+**All data is fake or Plaid Sandbox test data.** Educational only, not financial advice.
 
 ## Run it
 
-**Codespaces (nothing to install):** Code → Codespaces → Create codespace on main. The devcontainer installs everything and starts the app. Click *Open in Browser* when it pops up.
+**Codespaces (nothing to install):** Code → Codespaces → Create codespace on main. The devcontainer installs Python and Node, builds the site, and starts it on port 8000.
 
-**Your own computer:**
+**Your own computer** (Python 3.11+ and Node 20+):
 
 ```bash
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
+python -m pip install -r requirements-dev.txt
+cd web && npm install && npm run build && cd ..
+python -m uvicorn api.main:app --port 8000
 ```
 
-Then open http://localhost:8501. On Mac use `python3`.
+Then open http://localhost:8000 and click **Open the demo**. On Mac use `python3`.
+
+**Working on the frontend:** run the API as above, then `cd web && npm run dev` and open http://localhost:5173. Vite forwards `/api` to port 8000 and reloads on save.
 
 **Tests:**
 
 ```bash
-python -m pip install -r requirements-dev.txt
 python -m pytest
+cd web && npm run typecheck
 ```
 
-## What's in here
+## Turning things on
+
+Everything is optional. Copy `.env.example` to `.env` and fill in what you have, then restart.
+
+| Setting | What it unlocks |
+|---|---|
+| `PLAID_CLIENT_ID`, `PLAID_SECRET` | Event 2: the Accounts page can connect Plaid's Sandbox through Plaid Link, or in one click. Test login: `user_good` / `pass_good` |
+| `ANTHROPIC_API_KEY` | Event 3: Money Brain answers with Claude (`claude-opus-5-5`), streamed. Without a key, the rules engine answers |
+| `SECRET_KEY`, `APP_PASSWORD`, `COOKIE_SECURE` | Event 4: stable signed sessions, an owner login that guards bank connections, HTTPS-only cookies |
+
+## How it fits together
 
 | Path | What it does |
 |---|---|
-| `app.py` | The screen. Look for `TEAM TODO` to change the team name. |
-| `money/fake_bank.py` | A pretend bank: 5 accounts, 90 days of realistic transactions |
-| `money/plaid_bank.py` | Plaid Sandbox connection (Event 2 head start) |
-| `money/data_source.py` | Uses Plaid if keys are set, otherwise the fake bank. Never crashes |
-| `money/analytics.py` | Spending by category, month vs last month, subscriptions, unusual charges |
-| `money/assistant.py` | Money Brain: answers questions from your numbers and follows 5 safety rules |
-| `tests/` | 48 tests, no internet needed |
-| `docs/` | Team sheet, sketch, assistant rules, security risks, share-out script |
+| `web/` | The site: React, TypeScript, Tailwind, Recharts. Landing page, Overview, Transactions, Accounts, Security Center, and the Ask panel (Ctrl K) |
+| `api/main.py` | FastAPI. Sessions, dashboard data, streaming answers, Plaid Link endpoints. Serves the built site |
+| `api/security.py` | Security headers, rate limiter, and the 9 live checks behind the Security Center, including a red-team run |
+| `money/ai.py` | Money Brain on Claude. Guardrails run in code first; the model only ever sees totals and merchant names |
+| `money/assistant.py` | Guardrails and the rules engine. Also the fallback whenever Claude is off or fails |
+| `money/analytics.py`, `money/story.py` | Spending, pace vs last month, subscriptions, unusual charges, and the one-sentence month story |
+| `money/fake_bank.py`, `money/plaid_bank.py` | The pretend bank and the Plaid Sandbox connection |
+| `app.py` | The original Event 1 Streamlit screen, kept for reference (`streamlit run app.py`) |
+| `tests/` | 93 tests, no internet or keys needed |
+| `api/check_plaid.py` | `python -m api.check_plaid` tests your Plaid keys from the terminal without printing them |
+| `docs/` | Team sheet, sketch, assistant rules, security risks, share-out, demo script, specs and plans |
 
-## Event checklist
+## Events
 
-- **Event 1, Vibe Check:** done. Team name, roles, features, questions, sketch, running app.
-  - Silver: app name, tagline and colors; extra account (Cash App); competitor check.
-  - Gold: spending chart; 5 assistant rules; what could go wrong.
-- **Event 2, Plug It In:** head start. Make a free account at plaid.com, copy `.env.example` to `.env`, and paste your **sandbox** client ID and secret. Restart the app and the badge at the top should say *Plaid Sandbox*. If the keys are wrong, the badge shows Plaid's error and the app keeps running on the fake bank.
-- **Event 3, Talk to Your Wallet:** swap the keyword router in `assistant.answer()` for an LLM call. Use `RULES` as the system prompt and `build_context()` as the facts. Keep the guardrail checks in code.
-- **Event 4, Lock It Down:** start from `docs/security-risks.md`.
-- **Event 5, Demo Night:** start from `docs/share-out.md`.
+- **Event 1, Vibe Check:** team, roles, features, sketch, running app, and all bonuses. See `docs/team-sheet.md`.
+- **Event 2, Plug It In:** Plaid Link in the browser, public token swapped for an access token on the server. The access token never reaches the browser.
+- **Event 3, Talk to Your Wallet:** Claude with streaming, a system prompt built from the 5 rules, and guardrails that run before the model is called.
+- **Event 4, Lock It Down:** signed httpOnly cookies, CSP and other headers, rate limiting, secret scanning, prompt-injection blocking. The Security Center grades the app live.
+- **Event 5, Demo Night:** `docs/demo-script.md`.
 
 ## Ground rules
 
-Fake data only. No secrets in code (`.env` is gitignored). Help each other.
+Fake data only. No secrets in code (`.env` is gitignored, and the Security Center scans for leaked keys). Help each other.

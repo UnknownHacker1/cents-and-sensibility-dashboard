@@ -52,9 +52,27 @@ def _system_prompt(accounts: pd.DataFrame, tx: pd.DataFrame, today: date) -> str
 
 
 def _messages(history: Iterable[dict], question: str) -> list[dict]:
-    turns = [{"role": m["role"], "content": m["content"]} for m in history if m.get("role") in ("user", "assistant")]
+    """Past turns the model may see. History comes from the browser, so it's re-checked here:
+    a user turn that breaks a guardrail is dropped along with the reply to it."""
+    turns, skip_reply = [], False
+    for m in history:
+        role, content = m.get("role"), str(m.get("content") or "").strip()
+        if role == "user":
+            skip_reply = assistant.guardrail(content) is not None
+            if skip_reply:
+                continue
+        elif role != "assistant" or skip_reply:
+            skip_reply = False
+            continue
+        if not content:
+            continue
+        if turns and turns[-1]["role"] == role:  # roles must alternate; keep the later turn
+            turns.pop()
+        turns.append({"role": role, "content": content})
     while turns and turns[0]["role"] != "user":  # the API wants the conversation to open with the user
         turns.pop(0)
+    if turns and turns[-1]["role"] == "user":
+        turns.pop()
     return turns + [{"role": "user", "content": question}]
 
 

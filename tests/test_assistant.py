@@ -140,3 +140,8 @@ def test_build_context_has_grounded_facts():
     assert "Net worth: $6,046.24" in context
     assert "Shopping" in context
     assert "ElectroMart" in context
+
+
+def test_unusual_count_reads_as_plain_english():
+    reply = ask("Did anything weird hit my card recently?")
+    assert reply.text.startswith("2 charges look off.")

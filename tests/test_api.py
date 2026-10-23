@@ -39,6 +39,16 @@ def test_health_is_public(client):
     assert client.get("/api/health").json() == {"ok": True}
 
 
+def test_public_preview_uses_demo_data_only(client):
+    body = client.get("/api/preview").json()
+    assert body["story"][1] == {"value": "$2,403.49", "kind": "spent"}
+    assert len(body["pace"]) == 31
+    assert {a["merchant"] for a in body["alerts"]} == {"ElectroMart", "The Capital Grille"}
+    assert [e["question"] for e in body["examples"]][0] == "Where did my money go this month?"
+    assert all(e["answer"] for e in body["examples"])
+    assert "accounts" not in body
+
+
 def test_data_needs_login(client):
     assert client.get("/api/dashboard").status_code == 401
     assert client.get("/api/transactions").status_code == 401
@@ -199,6 +209,28 @@ def test_plaid_link_flow_keeps_access_token_server_side(monkeypatch):
         assert "access-sandbox-SECRET" not in response.text
         assert "access-sandbox-SECRET" not in response.headers.get("set-cookie", "")
 
+    c.post("/api/plaid/disconnect")
+    assert c.get("/api/dashboard").json()["source"] == "Fake bank"
+
+
+class BrokenBank(FakeBank):
+    calls = 0
+
+    def get_accounts(self):
+        BrokenBank.calls += 1
+        error = Exception("boom")
+        error.body = '{"error_code": "ITEM_LOGIN_REQUIRED"}'
+        raise error
+
+
+def test_failed_plaid_connection_falls_back_once_and_stops_retrying(monkeypatch):
+    monkeypatch.setattr(plaid_bank, "PlaidSandboxBank", BrokenBank)
+    c = make_client(plaid_client_id="id", plaid_secret="secret")
+    c.post("/api/login", json={"password": PASSWORD})
+    c.post("/api/plaid/exchange", json={"public_token": "public-sandbox-1"})
+    first, second = c.get("/api/dashboard").json(), c.get("/api/dashboard").json()
+    assert first["source"] == second["source"] == "Fake bank (Plaid failed: ITEM_LOGIN_REQUIRED)"
+    assert BrokenBank.calls == 1
     c.post("/api/plaid/disconnect")
     assert c.get("/api/dashboard").json()["source"] == "Fake bank"
 

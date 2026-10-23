@@ -79,10 +79,9 @@ def _month(today: date | None) -> pd.Period:
     return pd.Period(today or date.today(), "M")
 
 
-def answer(question: str, accounts: pd.DataFrame, tx: pd.DataFrame, today: date | None = None) -> Answer:
+def guardrail(question: str) -> Answer | None:
+    """The refusal for a question that breaks a rule, or None if it's fine to answer."""
     q = question.strip()
-    month = _month(today)
-
     if SENSITIVE.search(q):
         return Answer("Please don't share card numbers, SSNs, passwords or PINs, here or with any app. "
                       "I didn't save it. Delete it from anywhere else you pasted it.", "refuse_sensitive", True)
@@ -96,6 +95,16 @@ def answer(question: str, accounts: pd.DataFrame, tx: pd.DataFrame, today: date 
         return Answer("I can't guarantee returns or tell you what to buy or sell. That would be financial advice, "
                       "and this app is educational only. I can show what you spend and where you could save.",
                       "refuse_advice", True)
+    return None
+
+
+def answer(question: str, accounts: pd.DataFrame, tx: pd.DataFrame, today: date | None = None) -> Answer:
+    q = question.strip()
+    month = _month(today)
+
+    refusal = guardrail(q)
+    if refusal:
+        return refusal
 
     for intent, pattern in INTENTS:
         if pattern.search(q):
@@ -145,7 +154,7 @@ def _unusual(accounts, tx, month, today) -> Answer:
     if alerts.empty:
         return Answer("Nothing unusual in the last 14 days.", "unusual")
     items = " ".join(f"{a.date:%b %d}: {a.merchant} {_money(a.amount)} ({a.reason})." for a in alerts.itertuples())
-    return Answer(f"{len(alerts)} charge(s) look off. {items} If you don't recognize one, call your bank.",
+    return Answer(f"{len(alerts)} {'charge looks' if len(alerts) == 1 else 'charges look'} off. {items} If you don't recognize one, call your bank.",
                   "unusual")
 
 

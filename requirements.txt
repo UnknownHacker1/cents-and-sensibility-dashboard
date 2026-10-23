@@ -1,4 +1,11 @@
-streamlit>=1.50
+# Web app (Events 2-5)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+itsdangerous>=2.1
+anthropic>=2.2
+# Shared money brain
 pandas>=2.2
 plaid-python>=25.0
 python-dotenv>=1.0
+# Original Event 1 Streamlit screen (app.py)
+streamlit>=1.50

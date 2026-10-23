@@ -1,12 +1,15 @@
 {
-  "name": "Sensible dashboard",
+  "name": "Sensible",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
   "customizations": {
-    "codespaces": { "openFiles": ["README.md", "app.py"] },
+    "codespaces": { "openFiles": ["README.md"] },
     "vscode": { "extensions": ["ms-python.python"] }
   },
-  "updateContentCommand": "pip install --user -r requirements-dev.txt",
-  "postAttachCommand": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false",
-  "portsAttributes": { "8501": { "label": "Dashboard", "onAutoForward": "openPreview" } },
-  "forwardPorts": [8501]
+  "updateContentCommand": "pip install --user -r requirements-dev.txt && cd web && npm ci && npm run build",
+  "postAttachCommand": "python -m uvicorn api.main:app --host 0.0.0.0 --port 8000",
+  "portsAttributes": { "8000": { "label": "Sensible", "onAutoForward": "openPreview" } },
+  "forwardPorts": [8000]
 }
